@@ -192,10 +192,11 @@ Dois mecanismos para garantir que o SSH sobrevive a qualquer reboot.
 > quase sempre a **2.4 GHz** — mesmo com `wifi.band a` no perfil. A WAN fica
 > na banda lenta até alguém forçar manualmente um reconnect.
 >
-> Este vigia opcional faz isso automaticamente: a cada 5 min verifica se a
-> `netshare-wan` está fora dos 5 GHz e, se estiver, força um `down/up` que
-> volta a ligar à 5 GHz (porque a `wifi.band a` é respeitada no reconnect
-> manual).
+> Este vigia opcional faz isso automaticamente: a cada 1 min verifica se a
+> `netshare-wan` está fora dos 5 GHz e, se estiver, procura o melhor BSSID
+> de 5 GHz para o SSID atual, fixa esse BSSID no perfil e força um `down/up`.
+> Isto é mais robusto do que usar só `wifi.band a`, porque alguns APs/drivers
+> fazem roaming de volta para o BSSID de 2.4 GHz.
 
 Se NÃO tens este caso, **ignora esta secção** — não precisas.
 
@@ -237,7 +238,7 @@ sudo /opt/netshare/wan-watchdog.sh
 
 Quando o vigia agir, vês no `journalctl` algo do género:
 ```
-WAN em 2.4 GHz (2412 MHz) — a forçar reconnect para preferir 5 GHz
+WAN em 2.4 GHz (2412 MHz) — fixei BSSID 5 GHz aa:bb:cc:dd:ee:ff para SSID 'MinhaRede'
 após reconnect: 5 GHz (5260 MHz)
 ```
 
@@ -257,16 +258,13 @@ systemctl status netshare-wan-watchdog.timer 2>&1 | head -3
 # deve dizer "Unit netshare-wan-watchdog.timer could not be found." → removido OK
 ```
 
-### Pré-requisito
+### Nota
 
-A tua `netshare-wan` deve ter `wifi.band a` (5 GHz) — ou um BSSID 5 GHz fixo —
-configurada. Senão o reconnect que o vigia força acaba a voltar à 2.4 GHz.
-Para fixar:
+O vigia configura `wifi.band a` e fixa automaticamente um BSSID 5 GHz quando
+encontra um para o SSID atual. Se quiseres limpar esse BSSID manualmente:
 
 ```bash
-sudo nmcli connection modify netshare-wan 802-11-wireless.band a
-# (opcional, mais robusto) prender também ao BSSID 5 GHz específico:
-# sudo nmcli connection modify netshare-wan 802-11-wireless.bssid <BSSID-da-5GHz>
+sudo nmcli connection modify netshare-wan 802-11-wireless.bssid ""
 ```
 
 ---
@@ -320,7 +318,7 @@ dispatcher/90-netshare-mgmt       reforça a rota quando a netshare-lan sobe
 # opcional — só se precisares (ver secção do vigia da WAN):
 wan-watchdog.sh                   força 5 GHz na netshare-wan se cair para 2.4
 netshare-wan-watchdog.service     oneshot que corre o script
-netshare-wan-watchdog.timer       dispara o serviço de 5 em 5 min
+netshare-wan-watchdog.timer       dispara o serviço de 1 em 1 min
 ```
 
 ---

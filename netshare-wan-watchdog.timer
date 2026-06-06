@@ -1,11 +1,11 @@
 [Unit]
-Description=Verifica a cada 5 min se a WAN da NetShare está na banda 5 GHz
+Description=Verifica se a WAN da NetShare está na banda 5 GHz
 
 [Timer]
-# Primeira verificação 2 min após o boot (dá tempo ao NM/Wi-Fi de subir)
-OnBootSec=2min
-# Depois a cada 5 min
-OnUnitActiveSec=5min
+# Primeira verificação 45 s após o boot (dá tempo ao NM/Wi-Fi de subir)
+OnBootSec=45s
+# Depois a cada 1 min enquanto o timer estiver ativo
+OnUnitActiveSec=1min
 Unit=netshare-wan-watchdog.service
 # Persiste o calendário se o sistema esteve desligado
 Persistent=true

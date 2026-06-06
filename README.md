@@ -196,10 +196,11 @@ Two mechanisms, to make sure SSH survives any reboot.
 > in the profile. WAN stays on the slow band until someone forces a
 > reconnect.
 >
-> This optional watchdog does that automatically: every 5 minutes it checks
-> whether `netshare-wan` is off the 5 GHz band and, if so, forces a
-> `down/up` that comes back on 5 GHz (because `wifi.band a` is honored on a
-> manual reconnect).
+> This optional watchdog does that automatically: every 1 minute it checks
+> whether `netshare-wan` is off the 5 GHz band and, if so, finds the best
+> 5 GHz BSSID for the current SSID, pins that BSSID in the profile, and
+> forces a `down/up`. This is more robust than using only `wifi.band a`,
+> because some APs/drivers roam back to the 2.4 GHz BSSID.
 
 If this is NOT your case, **skip this section** — you don't need it.
 
@@ -241,7 +242,7 @@ sudo /opt/netshare/wan-watchdog.sh
 
 When the watchdog acts, you'll see something like this in `journalctl`:
 ```
-WAN on 2.4 GHz (2412 MHz) — forcing reconnect to prefer 5 GHz
+WAN on 2.4 GHz (2412 MHz) — pinned 5 GHz BSSID aa:bb:cc:dd:ee:ff for SSID 'MyNetwork'
 after reconnect: 5 GHz (5260 MHz)
 ```
 
@@ -261,16 +262,13 @@ systemctl status netshare-wan-watchdog.timer 2>&1 | head -3
 # should say "Unit netshare-wan-watchdog.timer could not be found." → removed OK
 ```
 
-### Prerequisite
+### Note
 
-Your `netshare-wan` must have `wifi.band a` (5 GHz) — or a fixed 5 GHz BSSID
-— configured. Otherwise the reconnect the watchdog forces ends up back on
-2.4 GHz. To set it:
+The watchdog sets `wifi.band a` and automatically pins a 5 GHz BSSID when it
+finds one for the current SSID. To clear that BSSID manually:
 
 ```bash
-sudo nmcli connection modify netshare-wan 802-11-wireless.band a
-# (optional, more robust) also pin the specific 5 GHz BSSID:
-# sudo nmcli connection modify netshare-wan 802-11-wireless.bssid <5-GHz-BSSID>
+sudo nmcli connection modify netshare-wan 802-11-wireless.bssid ""
 ```
 
 ---
@@ -326,7 +324,7 @@ dispatcher/90-netshare-mgmt       re-applies the route when netshare-lan comes u
 # optional — only if you need it (see the WAN watchdog section):
 wan-watchdog.sh                   forces netshare-wan to 5 GHz if it drops to 2.4
 netshare-wan-watchdog.service     oneshot that runs the script
-netshare-wan-watchdog.timer       fires the service every 5 min
+netshare-wan-watchdog.timer       fires the service every 1 min
 ```
 
 ---
