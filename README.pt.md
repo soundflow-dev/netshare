@@ -59,6 +59,42 @@ sudo ./install.sh && sudo systemctl restart netshare
 Abre **`http://<IP-de-gestão>:8088`** no browser. No 1.º acesso o painel
 pede-te para criar utilizador + password — não há credenciais por defeito.
 
+### Receita recomendada para Broadcom BCM43xx
+
+Se vais reinstalar do zero numa máquina com placa Broadcom BCM43xx/Fenvi que
+precisa do driver proprietário `wl`, usa esta ordem:
+
+```bash
+git clone --branch v1.0.4 https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
+
+sudo ./broadcom-wl-setup.sh
+sudo ./bootstrap.sh
+sudo reboot
+```
+
+Após o reboot:
+
+```bash
+cd ~/NetShare2
+sudo ./install.sh
+sudo systemctl restart netshare
+```
+
+No painel, define a Wi-Fi Broadcom como **Recebe internet**, escolhe a linha
+**5 GHz** do SSID no scanner, define a Ethernet para o router/WAN2 como
+**Partilha internet** e a Ethernet de gestão como **Rede normal**. Para redes
+dual-band com o mesmo SSID, instala também o watchdog 5 GHz:
+
+```bash
+cd ~/NetShare2
+sudo install -m755 wan-watchdog.sh /opt/netshare/wan-watchdog.sh
+sudo cp netshare-wan-watchdog.service /etc/systemd/system/
+sudo cp netshare-wan-watchdog.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now netshare-wan-watchdog.timer
+```
+
 ### Caso especial: placa Wi-Fi Broadcom BCM43xx
 
 Algumas placas Wi-Fi têm chip Broadcom **BCM43xx** que não é suportado pela

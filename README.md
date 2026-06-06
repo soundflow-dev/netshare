@@ -60,6 +60,43 @@ Open **`http://<management-IP>:8088`** in your browser. On the first access
 the panel will ask you to create a username + password — there are no
 default credentials.
 
+### Recommended recipe for Broadcom BCM43xx
+
+If you are reinstalling from scratch on a machine with a Broadcom BCM43xx/Fenvi
+card that needs the proprietary `wl` driver, use this order:
+
+```bash
+git clone --branch v1.0.4 https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
+
+sudo ./broadcom-wl-setup.sh
+sudo ./bootstrap.sh
+sudo reboot
+```
+
+After the reboot:
+
+```bash
+cd ~/NetShare2
+sudo ./install.sh
+sudo systemctl restart netshare
+```
+
+In the panel, set the Broadcom Wi-Fi card to **Receives internet**, choose the
+**5 GHz** row for your SSID in the scanner, set the Ethernet cable to the
+router/WAN2 as **Shares internet**, and set the management Ethernet as
+**Local network**. For dual-band networks with the same SSID, also install the
+5 GHz watchdog:
+
+```bash
+cd ~/NetShare2
+sudo install -m755 wan-watchdog.sh /opt/netshare/wan-watchdog.sh
+sudo cp netshare-wan-watchdog.service /etc/systemd/system/
+sudo cp netshare-wan-watchdog.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now netshare-wan-watchdog.timer
+```
+
 ### Special case: Broadcom BCM43xx Wi-Fi card
 
 Some Wi-Fi cards use a Broadcom **BCM43xx** chip that is not supported by
