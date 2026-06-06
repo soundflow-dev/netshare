@@ -21,10 +21,10 @@ if ! command -v nmcli >/dev/null; then
   echo "      Instala e ativa o NetworkManager primeiro (ver README)."
   exit 1
 fi
-# 'iw' é usado para detetar se uma placa Wi-Fi suporta modo AP
+# 'iw' é usado para ler a banda Wi-Fi, detectar modo AP e pelo watchdog opcional
 if ! command -v iw >/dev/null; then
-  echo "    a instalar 'iw' (deteção de modo AP)..."
-  apt-get install -y iw >/dev/null 2>&1 || echo "    (aviso: não instalou iw — deteção AP fica conservadora)"
+  echo "    a instalar 'iw' (banda Wi-Fi/modo AP/watchdog)..."
+  apt-get install -y iw >/dev/null 2>&1 || echo "    (aviso: não instalou iw — banda Wi-Fi/modo AP/watchdog indisponíveis)"
 fi
 
 echo "==> Copiar app para $APP_DIR"
@@ -38,7 +38,7 @@ mkdir -p "$CFG_DIR"
 if [[ ! -f "$CFG_DIR/config.json" ]]; then
   cp "$SRC/config.example.json" "$CFG_DIR/config.json"
   chmod 600 "$CFG_DIR/config.json"
-  echo "    >> Edita $CFG_DIR/config.json e define a password!"
+  echo "    config.json criado. As credenciais sao criadas no 1.o acesso ao painel."
 else
   echo "    config.json ja existe, mantido."
 fi

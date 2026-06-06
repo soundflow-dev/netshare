@@ -46,8 +46,8 @@ If your card is **Broadcom BCM43xx** (typical in Fenvi / Hackintosh cards —
 chips BCM4360, BCM4352, BCM4364, BCM43224, ...), run this first:
 
 ```bash
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 sudo ./broadcom-wl-setup.sh
 ```
 
@@ -66,20 +66,19 @@ With the temporary cable connected, on the machine (clone the repo now if
 you haven't already):
 
 ```bash
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 sudo ./bootstrap.sh
 sudo reboot
 ```
 
-> See the available releases at
-> https://github.com/soundflow-dev/netshare/releases — replace `v1.0.0`
-> with whatever version you want. If you have no network at all yet, copy
-> the folder via USB stick or
-> `scp -r netshare/ <user>@<box-IP>:~/` from another computer.
+> When releases exist, you can use a stable tag from
+> https://github.com/soundflow-dev/NetShare2/releases. If you have no
+> network at all yet, copy the folder via USB stick or
+> `scp -r NetShare2/ <user>@<box-IP>:~/` from another computer.
 
 `bootstrap.sh` installs NetworkManager (needed for Wi-Fi scan + *shared*
-mode), `iw` (AP-mode detection), disables cloud-init's network config and
+mode), `iw` (Wi-Fi band/AP mode/watchdog), disables cloud-init's network config and
 `wait-online`.
 
 **After the reboot**, confirm Wi-Fi appears:
@@ -96,7 +95,7 @@ cards, see the *Troubleshooting* section at the end.
 ## Phase 3 — Install the NetShare panel
 
 ```bash
-cd ~/netshare
+cd ~/NetShare2
 sudo ./install.sh
 sudo systemctl restart netshare
 ```
@@ -115,14 +114,13 @@ In the panel, choose each interface's role:
 
 | Interface | Role | Notes |
 |-----------|------|-------|
-| Wi-Fi (e.g. `wlp1s0`) | **Receives internet** | joins the upstream network (you pick the SSID and enter the password in the panel) |
-| Cable to upstream router (e.g. `enp2s0`) | **Shares internet** | automatic NAT + DHCP (`10.42.0.1/24`) |
+| Wi-Fi (e.g. `wlp1s0`) | **Receives internet** or **Shares internet** | WAN client when joining an SSID; hotspot only if AP mode is supported |
+| Cable to router/devices (e.g. `enp2s0`) | **Receives internet** or **Shares internet** | WAN over DHCP or automatic NAT + DHCP (`10.42.0.1/24`) |
 | Management cable (e.g. `enp3s0`) | **Local network** | standard DHCP but `never-default` |
 
-> The **"Share over Wi-Fi"** option is disabled on cards whose chip does
-> not support AP mode — for example, Broadcom BCM43xx with the `wl` driver
-> can only be a client. To share you must use a cable. (Detection is
-> automatic via `iw`.)
+> Broadcom BCM43xx with the proprietary `wl` driver is an important special
+> case: it usually works as a WAN client, but does not expose AP mode. The panel
+> should block “Shares internet” on that card; use Ethernet for sharing.
 
 ## Phase 5 — Final cabling
 

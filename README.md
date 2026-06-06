@@ -40,9 +40,9 @@ For most machines (Wi-Fi cards from Intel, Realtek, MediaTek, Atheros, or
 Broadcom supported by the open `brcmfmac` driver). Over SSH:
 
 ```bash
-# 1) Clone the stable release
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+# 1) Clone NetShare2
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 
 # 2) Universal system preparation (NetworkManager, iw, ...)
 sudo ./bootstrap.sh && sudo reboot
@@ -52,7 +52,7 @@ After the reboot, reconnect over SSH and:
 
 ```bash
 # 3) Install the panel and the management route mechanism
-cd netshare
+cd NetShare2
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 
@@ -79,8 +79,8 @@ this step.
 **How to install (run BEFORE `bootstrap.sh`):**
 
 ```bash
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 
 # 0) BEFORE bootstrap — install the proprietary Broadcom driver
 sudo ./broadcom-wl-setup.sh
@@ -88,7 +88,7 @@ sudo ./broadcom-wl-setup.sh
 # 1+2+3) Rest is the same as the standard install
 sudo ./bootstrap.sh && sudo reboot
 # after the reboot:
-cd netshare
+cd NetShare2
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 
@@ -124,13 +124,14 @@ After creating the account, you assign each interface's role in the panel:
 
 | Role | What it's for | What the panel does (via nmcli) |
 |---|---|---|
-| **Receives internet** (WAN) | Card that connects to the network providing internet | Wi-Fi: joins the chosen network; supplies the default route |
-| **Shares internet** | Ethernet cable to your router's secondary WAN | `ipv4.method shared` → automatic NAT + DHCP (`10.42.0.1/24`) |
+| **Receives internet** (WAN) | Card that connects to the network providing internet | Wi-Fi: joins the chosen network; Ethernet: standard DHCP; supplies the default route |
+| **Shares internet** | Output to the router/devices | Ethernet or Wi-Fi AP with `ipv4.method shared` → automatic NAT + DHCP (`10.42.0.1/24`) |
 | **Local network** | Management/SSH cable | Standard DHCP, but `ipv4.never-default yes` (never becomes egress) |
 | **Inactive** | Bring the interface down | — |
 
-> The **"Share over Wi-Fi"** option is disabled on cards whose chip does
-> not support AP mode (e.g. Broadcom `wl`). Detected automatically via `iw`.
+> Wi-Fi sharing is only available on cards whose chip/driver supports **AP
+> mode**. Broadcom BCM43xx with the proprietary `wl` driver usually works as a
+> WAN client, but not as a hotspot; use Ethernet for sharing in those cases.
 
 ---
 
@@ -142,7 +143,7 @@ After creating the account, you assign each interface's role in the panel:
   neither).
 - Disables cloud-init's network config (so it doesn't rewrite netplan at
   boot).
-- Installs **`iw`** (used to detect whether Wi-Fi supports AP mode).
+- Installs **`iw`** (used to read the current Wi-Fi band, detect AP mode, and by the watchdog).
 - Disables `wait-online` (saves ~150 s at boot).
 
 ### `broadcom-wl-setup.sh` (only if you have a Broadcom BCM43xx card)
@@ -336,4 +337,4 @@ Validated in production on a mini-PC running Ubuntu Server (Broadcom BCM4360
 Wi-Fi card + 2× Realtek Ethernet): automatic bootstrap, panel deployed, NAT
 sharing feeding the WAN2 of a Dream Machine, survives a clean reboot
 (management return route is re-applied at boot), and complete reinstall
-from scratch confirmed via `git clone --branch v1.0.0`.
+from scratch confirmed via a fresh clone.

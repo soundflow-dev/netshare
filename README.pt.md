@@ -40,9 +40,9 @@ Para a maioria das máquinas (placas Wi-Fi Intel, Realtek, MediaTek, Atheros, ou
 Broadcom suportadas pelo driver aberto `brcmfmac`). Por SSH:
 
 ```bash
-# 1) Clona a versão estável
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+# 1) Clona o NetShare2
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 
 # 2) Preparação universal do sistema (NetworkManager, iw, ...)
 sudo ./bootstrap.sh && sudo reboot
@@ -52,7 +52,7 @@ Após o reboot, reconecta-te por SSH e:
 
 ```bash
 # 3) Instala o painel e o mecanismo de rota de gestão
-cd netshare
+cd NetShare2
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 
@@ -77,8 +77,8 @@ aparece no `nmcli device status` após o `bootstrap.sh`, precisas deste passo.
 **Como instalar (executar ANTES do `bootstrap.sh`):**
 
 ```bash
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 
 # 0) ANTES do bootstrap — instala o driver Broadcom proprietário
 sudo ./broadcom-wl-setup.sh
@@ -86,7 +86,7 @@ sudo ./broadcom-wl-setup.sh
 # 1+2+3) Resto igual à instalação padrão
 sudo ./bootstrap.sh && sudo reboot
 # após o reboot:
-cd netshare
+cd NetShare2
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 
@@ -122,13 +122,14 @@ Depois de criar a conta, no painel atribuis o papel de cada interface:
 
 | Papel | Para que serve | O que o painel faz (via nmcli) |
 |---|---|---|
-| **Recebe internet** (WAN) | Placa que liga à rede que fornece a internet | Wi-Fi: liga à rede escolhida; fornece a rota default |
-| **Partilha internet** | Cabo que vai à WAN secundária do teu router | `ipv4.method shared` → NAT + DHCP automáticos (`10.42.0.1/24`) |
+| **Recebe internet** (WAN) | Placa que liga à rede que fornece a internet | Wi-Fi: liga à rede escolhida; Ethernet: DHCP normal; fornece a rota default |
+| **Partilha internet** | Saída para o router/dispositivos | Ethernet ou Wi-Fi AP com `ipv4.method shared` → NAT + DHCP automáticos (`10.42.0.1/24`) |
 | **Rede normal** | Cabo de gestão/SSH | DHCP normal, mas `ipv4.never-default yes` (nunca vira saída) |
 | **Inativa** | Desligar a interface | — |
 
-> A opção **"Partilhar por Wi-Fi"** fica desativada em placas cujo chip não
-> suporta modo AP (ex.: Broadcom `wl`). Detetado automaticamente via `iw`.
+> A partilha por Wi-Fi só aparece em placas cujo chip/driver suporta **modo AP**.
+> Broadcom BCM43xx com driver proprietário `wl` costuma servir como WAN cliente,
+> mas não como hotspot; nesses casos usa Ethernet para partilhar.
 
 ---
 
@@ -140,7 +141,7 @@ Depois de criar a conta, no painel atribuis o papel de cada interface:
   faz nada disto).
 - Desactiva a configuração de rede do cloud-init (para não reescrever o
   netplan no boot).
-- Instala o **`iw`** (usado para detectar se a Wi-Fi suporta modo AP).
+- Instala o **`iw`** (usado para ler a banda Wi-Fi, detectar modo AP e pelo watchdog).
 - Desliga o `wait-online` (corta ~150 s no arranque).
 
 ### `broadcom-wl-setup.sh` (só se tiveres placa Broadcom BCM43xx)
@@ -330,4 +331,4 @@ Validado em produção num mini-PC com Ubuntu Server (placa Broadcom BCM4360 +
 2× Ethernet Realtek): bootstrap automático, painel deployado, partilha NAT a
 alimentar a WAN2 de uma Dream Machine, sobrevive a reboot limpo (rota de
 retorno de gestão reposta no arranque), e
-reinstalação completa do zero confirmada via `git clone --branch v1.0.0`.
+reinstalação completa do zero confirmada via clone limpo.

@@ -424,6 +424,9 @@ const TRANSLATIONS = {
     "wifi.connecting": "A ligar a \"{ssid}\"…",
     "wifi.connectedToWan": "Ligado a \"{ssid}\". Esta interface é a WAN.",
     "wifi.passwordPlaceholder": "Password da rede",
+    "wifi.shareSsidPrompt": "Nome da rede Wi-Fi a criar",
+    "wifi.sharePasswordPrompt": "Password da rede Wi-Fi (mín. 8 caracteres)",
+    "wifi.sharePasswordShort": "A password do hotspot Wi-Fi precisa de pelo menos 8 caracteres.",
 
     "modal.cancel": "Cancelar",
     "modal.connect": "Ligar",
@@ -513,6 +516,9 @@ const TRANSLATIONS = {
     "wifi.connecting": "Connecting to \"{ssid}\"…",
     "wifi.connectedToWan": "Connected to \"{ssid}\". This interface is the WAN.",
     "wifi.passwordPlaceholder": "Network password",
+    "wifi.shareSsidPrompt": "Wi-Fi network name to create",
+    "wifi.sharePasswordPrompt": "Wi-Fi network password (min. 8 characters)",
+    "wifi.sharePasswordShort": "The Wi-Fi hotspot password must be at least 8 characters.",
 
     "modal.cancel": "Cancel",
     "modal.connect": "Connect",
@@ -647,7 +653,7 @@ const history = {};            // dev -> [{down, up}, ...]
 let demoMode = false;
 let demoT = 0;
 const DEMO_DEVICES = [
-  { device: "wlan0", type: "wifi", state: "connected", connection: "netshare-wan", role: "wan", ipv4: "192.168.1.42/24", ap_capable: false, band: "5 GHz" },
+  { device: "wlan0", type: "wifi", state: "connected", connection: "netshare-wan", role: "wan", ipv4: "192.168.1.42/24", band: "5 GHz" },
   { device: "eth0", type: "ethernet", state: "connected", connection: "netshare-share", role: "share", ipv4: "10.42.0.1/24", link_speed: "1 Gbps" },
   { device: "eth1", type: "ethernet", state: "connected", connection: "netshare-lan", role: "lan", ipv4: "10.10.0.55/16", link_speed: "1 Gbps" },
 ];
@@ -683,6 +689,16 @@ async function api(path, opts) {
   }
   if (!res.ok) throw new Error(data.error || res.statusText);
   return data;
+}
+
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[ch]);
 }
 
 function toast(msg, isError) {
@@ -807,7 +823,7 @@ function linkInfoSpan(dev) {
     txt = dev.link_speed || (demoMode ? "1 Gbps" : "");
   }
   if (!txt) return "";
-  return `<div class="m link-info" title="${txt}">${txt}</div>`;
+  return `<div class="m link-info" title="${esc(txt)}">${esc(txt)}</div>`;
 }
 
 function deviceCard(dev) {
@@ -815,27 +831,27 @@ function deviceCard(dev) {
   const card = document.createElement("div");
   card.className = "card role-" + dev.role;
   card.dataset.dev = dev.device;
-  const up = dev.state.includes("connected");
-  // Wi-Fi sem modo AP não pode partilhar -> opção desativada
-  const noAp = isWifi && dev.ap_capable === false;
+  const up = dev.state === "connected";
+  // Wi-Fi só pode partilhar se o driver expõe modo AP (Broadcom wl fica false).
+  const shareBlocked = isWifi && dev.ap_capable === false;
   const opts = rolesList().map((r) => {
-    const block = r.id === "share" && noAp;
+    const block = r.id === "share" && shareBlocked;
     return `<option value="${r.id}" ${dev.role === r.id ? "selected" : ""}` +
-      `${block ? " disabled" : ""}>${r.label}` +
-      `${block ? " (" + t("role.noAp") + ")" : ""}</option>`;
+      `${block ? " disabled" : ""}>${esc(r.label)}` +
+      `${block ? " (" + esc(t("role.noAp")) + ")" : ""}</option>`;
   }).join("");
 
   card.innerHTML = `
     <div class="card-top">
       <div class="ico ${isWifi ? "wifi" : "eth"}">${isWifi ? "📶" : "🔌"}</div>
       <div>
-        <div class="card-name">${dev.device}</div>
-        <div class="card-sub">${isWifi ? "Wi-Fi" : "Ethernet"}${dev.connection ? " · " + dev.connection : ""}</div>
+        <div class="card-name">${esc(dev.device)}</div>
+        <div class="card-sub">${isWifi ? "Wi-Fi" : "Ethernet"}${dev.connection ? " · " + esc(dev.connection) : ""}</div>
       </div>
       <span class="pill ${up ? "up" : "down"}">${up ? t("device.active") : t("device.inactive")}</span>
     </div>
-    <div class="kv"><span class="k">${t("device.ipv4")}</span><span class="v">${dev.ipv4 || "—"}</span></div>
-    <div class="kv"><span class="k">${t("device.role")}</span><span class="v role-tag ${dev.role}">${ROLE_TAG[dev.role]}</span></div>
+    <div class="kv"><span class="k">${esc(t("device.ipv4"))}</span><span class="v">${esc(dev.ipv4 || "—")}</span></div>
+    <div class="kv"><span class="k">${esc(t("device.role"))}</span><span class="v role-tag ${esc(dev.role)}">${esc(ROLE_TAG[dev.role] || "—")}</span></div>
     <div class="mini">
       <div class="m down"><span>↓</span><span class="r-down">0</span><small class="u-down">bps</small></div>
       <div class="m up"><span>↑</span><span class="r-up">0</span><small class="u-up">bps</small></div>
@@ -843,10 +859,10 @@ function deviceCard(dev) {
     </div>
     <canvas class="spark"></canvas>
     <div class="card-ctrl">
-      <label>${t("device.role")}
-        <select data-dev="${dev.device}" data-type="${dev.type}">${opts}</select>
+      <label>${esc(t("device.role"))}
+        <select data-dev="${esc(dev.device)}" data-type="${esc(dev.type)}">${opts}</select>
       </label>
-      ${isWifi ? `<button class="ghost wifi-btn">${t("device.wifiBtn")}</button>` : ""}
+      ${isWifi ? `<button class="ghost wifi-btn">${esc(t("device.wifiBtn"))}</button>` : ""}
     </div>`;
 
   card.querySelector("select").addEventListener("change", (e) => onRoleChange(e.target));
@@ -957,10 +973,24 @@ async function onRoleChange(select) {
     toast(t("wifi.pickToConnect"));
     return;
   }
+  const body = { dev, role };
+  if (role === "share" && select.dataset.type === "wifi") {
+    const ssid = prompt(t("wifi.shareSsidPrompt"), `NetShare-${dev}`);
+    if (!ssid) { refreshStatus(); return; }
+    const password = prompt(t("wifi.sharePasswordPrompt"), "");
+    if (!password) { refreshStatus(); return; }
+    if (password.length < 8) {
+      toast(t("wifi.sharePasswordShort"), true);
+      refreshStatus();
+      return;
+    }
+    body.ssid = ssid;
+    body.password = password;
+  }
   try {
     await api("/api/role", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dev, role }),
+      body: JSON.stringify(body),
     });
     toast(t("device.appliedRole", { dev }));
     refreshStatus();
@@ -985,7 +1015,13 @@ async function scanWifi() {
     list.innerHTML = "";
     if (!data.networks.length) { list.innerHTML = `<div class="muted">${t("wifi.noNetworks")}</div>`; return; }
     data.networks.forEach((n) => list.appendChild(wifiRow(n)));
-  } catch (e) { list.innerHTML = `<div class="muted error">${t("err.prefix")}${e.message}</div>`; }
+  } catch (e) {
+    list.innerHTML = "";
+    const err = document.createElement("div");
+    err.className = "muted error";
+    err.textContent = t("err.prefix") + e.message;
+    list.appendChild(err);
+  }
 }
 
 function wifiRow(net) {
@@ -998,8 +1034,8 @@ function wifiRow(net) {
     : `<button class="connect">${t("wifi.connect")}</button>`;
   row.innerHTML = `
     <span class="signal s${bars}">▂▄▆█</span>
-    <span class="ssid">${net.ssid}</span>
-    <span class="sec">${locked ? "🔒 " + net.security : t("wifi.open")}</span>
+    <span class="ssid">${esc(net.ssid)}</span>
+    <span class="sec">${locked ? "🔒 " + esc(net.security) : esc(t("wifi.open"))}</span>
     ${action}`;
   if (net.in_use) {
     row.querySelector(".disconnect").addEventListener("click", disconnectWifi);

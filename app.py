@@ -28,9 +28,8 @@ CONFIG_PATH = os.environ.get("NETSHARE_CONFIG", "/etc/netshare/config.json")
 DEFAULTS = {
     "host": "0.0.0.0",
     "port": 8088,
-    "password": "",            # vazio => autenticacao desligada (NAO recomendado)
-    "username": "admin",
     "share_subnet": "10.42.0.1/24",
+    "share_wifi_ssid": "NetShare",
 }
 
 # Nomes fixos das ligacoes que este painel cria/gere, por papel.
@@ -175,7 +174,10 @@ def list_devices():
     if rc != 0:
         return devices
     con_to_role = {v: k for k, v in CON.items()}
-    for dev, typ, state, con in _terse(out):
+    for row in _terse(out):
+        if len(row) < 4:
+            continue
+        dev, typ, state, con = row[:4]
         if typ not in ("wifi", "ethernet"):
             continue
         entry = {
@@ -186,9 +188,8 @@ def list_devices():
             "role": con_to_role.get(con, "none"),
             "ipv4": _device_ipv4(dev),
         }
-        connected = "connected" in state
+        connected = state == "connected"
         if typ == "wifi":
-            # só as placas com modo AP podem PARTILHAR por Wi-Fi
             entry["ap_capable"] = wifi_ap_capable(dev)
             # banda actual (2.4 GHz / 5 GHz / 6 GHz) — só se ligado
             entry["band"] = _wifi_band(dev) if connected else ""
@@ -284,7 +285,15 @@ def wifi_connect(dev, ssid, password):
     'key-mgmt property is missing' ao religar) e volta a fixar a metrica baixa
     para a WAN continuar a ser o default primario.
     """
-    nmcli("connection", "delete", CON["wan"])  # best effort
+    if not dev or not ssid:
+        raise ValueError("interface e SSID sao obrigatorios")
+    if not is_wifi(dev):
+        raise ValueError("a interface escolhida nao e Wi-Fi")
+
+    # A WAN é única, mas antes de a mover para esta placa limpamos também
+    # qualquer perfil NetShare antigo associado à própria interface.
+    _delete_managed_for_device(dev, keep=None)
+    _delete_conn(CON["wan"])
     args = ["device", "wifi", "connect", ssid, "ifname", dev,
             "name", CON["wan"]]
     if password:
@@ -301,6 +310,8 @@ def wifi_connect(dev, ssid, password):
 
 def wifi_disconnect(dev):
     """Desliga a Wi-Fi (baixa a ligacao WAN). A gestao/SSH e por cabo, fica."""
+    if not dev:
+        raise ValueError("interface obrigatoria")
     rc, _, err = nmcli("device", "disconnect", dev, timeout=30)
     if rc != 0:
         raise RuntimeError(err.strip() or "falha ao desligar")
@@ -316,9 +327,11 @@ def is_wifi(dev):
 
 
 def wifi_ap_capable(dev):
-    """True se a placa Wi-Fi suporta modo AP (necessário para PARTILHAR por
-    Wi-Fi). Drivers sem mac80211 (ex.: Broadcom `wl`) não têm phy80211 e não
-    suportam AP — devolve False."""
+    """True se a placa Wi-Fi suporta modo AP.
+
+    Drivers sem mac80211/phy80211 (ex.: Broadcom BCM43xx com `wl`) devolvem
+    False, que é exatamente o que queremos: podem ser WAN, mas não hotspot.
+    """
     phylink = Path("/sys/class/net") / dev / "phy80211"
     try:
         phy = phylink.resolve().name          # ex.: "phy0"
@@ -347,31 +360,30 @@ def wifi_ap_capable(dev):
     return False
 
 
-def apply_role(dev, role):
+def apply_role(dev, role, opts=None):
     """Atribui um papel a uma interface, criando/ajustando a ligacao NM."""
+    opts = opts or {}
+    if not dev:
+        raise ValueError("interface obrigatoria")
     if role not in ("wan", "share", "lan", "none"):
         raise ValueError("papel invalido")
 
+    _delete_managed_for_device(dev, keep=None)
+
     if role == "none":
-        for name in CON.values():
-            nmcli("connection", "delete", name)  # best effort
         _clear_device(dev)
         return
 
     name = CON[role]
-    # remover qualquer ligacao antiga com este nome (papel unico)
-    nmcli("connection", "delete", name)
+    # O papel é único: se já existir noutra interface, move para esta.
+    _delete_conn(name)
 
     if role == "wan":
-        # a WAN Wi-Fi cria-se via wifi_connect; aqui so cobre WAN por cabo
+        if is_wifi(dev):
+            raise RuntimeError("Para usar Wi-Fi como WAN, escolhe a rede Wi-Fi no painel.")
         _add_ethernet(dev, name, method="auto", never_default=False)
     elif role == "share":
-        if is_wifi(dev) and not wifi_ap_capable(dev):
-            raise RuntimeError(
-                "Esta placa Wi-Fi não suporta modo AP — não pode partilhar "
-                "internet por Wi-Fi. Usa uma porta de cabo para partilhar (ou "
-                "uma placa Wi-Fi compatível com hostapd/modo AP).")
-        _add_share(dev, name)
+        _add_share(dev, name, opts)
         _ensure_ip_forward()
     elif role == "lan":
         # gestao/rede normal: apanha IP mas NUNCA vira rota default
@@ -398,12 +410,43 @@ def _add_ethernet(dev, name, method, never_default):
           "ipv4.never-default", "yes" if never_default else "no")
 
 
-def _add_share(dev, name):
+def _add_share(dev, name, opts=None):
     """Modo partilha: NAT + DHCP automaticos do NetworkManager."""
+    opts = opts or {}
+    if is_wifi(dev):
+        _add_wifi_share(dev, name, opts)
+        return
     nmcli("connection", "add", "type", "ethernet", "ifname", dev,
           "con-name", name, "ipv4.method", "shared", check=True)
     subnet = CONFIG.get("share_subnet") or DEFAULTS["share_subnet"]
     nmcli("connection", "modify", name, "ipv4.addresses", subnet)
+
+
+def _add_wifi_share(dev, name, opts):
+    """Cria hotspot Wi-Fi com NAT/DHCP via NetworkManager shared mode."""
+    if not wifi_ap_capable(dev):
+        raise RuntimeError(
+            "Esta placa Wi-Fi não suporta modo AP — pode receber internet, "
+            "mas não pode partilhar por Wi-Fi. Em Broadcom BCM43xx com driver "
+            "`wl`, usa Ethernet para partilhar.")
+    ssid = (opts.get("ssid") or CONFIG.get("share_wifi_ssid")
+            or DEFAULTS["share_wifi_ssid"]).strip()
+    password = (opts.get("password") or CONFIG.get("share_wifi_password") or "")
+    if not ssid:
+        raise ValueError("SSID do hotspot obrigatorio")
+    if len(password) < 8:
+        raise ValueError("password do hotspot Wi-Fi tem de ter pelo menos 8 caracteres")
+
+    subnet = CONFIG.get("share_subnet") or DEFAULTS["share_subnet"]
+    nmcli("connection", "add", "type", "wifi", "ifname", dev,
+          "con-name", name, "ssid", ssid, check=True)
+    nmcli("connection", "modify", name,
+          "wifi.mode", "ap",
+          "ipv4.method", "shared",
+          "ipv4.addresses", subnet,
+          "wifi-sec.key-mgmt", "wpa-psk",
+          "wifi-sec.psk", password,
+          check=True)
 
 
 def _ensure_ip_forward():
@@ -411,6 +454,41 @@ def _ensure_ip_forward():
         Path("/proc/sys/net/ipv4/ip_forward").write_text("1")
     except OSError:
         pass
+
+
+def _delete_conn(name):
+    nmcli("connection", "delete", name)  # best effort
+
+
+def _conn_devices(name):
+    rc, out, _ = nmcli("-g", "GENERAL.DEVICES", "connection", "show", name)
+    if rc != 0:
+        return []
+    return [line.strip() for line in out.splitlines() if line.strip()]
+
+
+def _conn_interface_name(name):
+    rc, out, _ = nmcli("-g", "connection.interface-name", "connection", "show", name)
+    if rc != 0:
+        return ""
+    return out.strip().splitlines()[0].strip() if out.strip() else ""
+
+
+def _conn_bound_to_device(name, dev):
+    return dev in _conn_devices(name) or _conn_interface_name(name) == dev
+
+
+def _delete_managed_for_device(dev, keep=None):
+    """Remove perfis NetShare ligados a esta interface.
+
+    Importante: ao pôr uma placa como "Inativa" não podemos apagar os perfis
+    globais das outras placas, senão uma mudança inocente desmonta WAN/gestão.
+    """
+    for name in CON.values():
+        if name == keep:
+            continue
+        if _conn_bound_to_device(name, dev):
+            _delete_conn(name)
 
 
 def _nmcli_first(dev, field):
@@ -638,7 +716,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._safe(lambda: {"ok": wifi_disconnect(data.get("dev"))})
         if path == "/api/role":
             return self._safe(lambda: (apply_role(
-                data.get("dev"), data.get("role")), {"ok": True})[1])
+                data.get("dev"), data.get("role"), data), {"ok": True})[1])
         return self._json({"error": "not found"}, 404)
 
     # -- helpers -------------------------------------------------------------
@@ -654,7 +732,11 @@ class Handler(BaseHTTPRequestHandler):
 
     def _serve_static(self, rel):
         target = (STATIC_DIR / rel).resolve()
-        if not str(target).startswith(str(STATIC_DIR)) or not target.is_file():
+        try:
+            target.relative_to(STATIC_DIR.resolve())
+        except ValueError:
+            return self._json({"error": "not found"}, 404)
+        if not target.is_file():
             return self._json({"error": "not found"}, 404)
         ctype = {
             ".html": "text/html; charset=utf-8",

@@ -41,14 +41,17 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
-echo "==> [1/4] DKMS + headers + driver broadcom-sta-dkms"
+echo "==> [1/5] apt update"
+apt-get update -y
+
+echo "==> [2/5] DKMS + headers + driver broadcom-sta-dkms"
 # tenta os headers do kernel actual; cai para o pacote genérico se não houver
 DEBIAN_FRONTEND=noninteractive apt-get install -y \
   dkms "linux-headers-$(uname -r)" 2>/dev/null || \
   DEBIAN_FRONTEND=noninteractive apt-get install -y dkms linux-headers-generic
 DEBIAN_FRONTEND=noninteractive apt-get install -y broadcom-sta-dkms
 
-echo "==> [2/4] Blacklist dos drivers abertos que roubam a placa"
+echo "==> [3/5] Blacklist dos drivers abertos que roubam a placa"
 cat > /etc/modprobe.d/blacklist-broadcom-open.conf <<'EOF'
 # Bloqueia drivers abertos para forçar o uso do `wl` (broadcom-sta) nas
 # placas Broadcom BCM43xx que não estão suportadas pela mainline.
@@ -62,10 +65,10 @@ EOF
 echo "wl" > /etc/modules-load.d/broadcom-wl.conf
 update-initramfs -u
 
-echo "==> [3/4] Travar o kernel (driver wl pode partir num kernel novo)"
+echo "==> [4/5] Travar o kernel (driver wl pode partir num kernel novo)"
 apt-mark hold linux-image-generic linux-headers-generic linux-generic || true
 
-echo "==> [4/4] Feito."
+echo "==> [5/5] Feito."
 echo
 echo "Próximos passos:"
 echo "  1) sudo ./bootstrap.sh        # preparação universal do sistema"

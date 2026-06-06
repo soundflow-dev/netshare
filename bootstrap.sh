@@ -5,7 +5,7 @@
 # (Intel, Realtek, MediaTek, Atheros, e Broadcom com driver brcmfmac):
 #   - NetworkManager (renderer do netplan, necessário para scan Wi-Fi + modo
 #     `shared` que o systemd-networkd não suporta)
-#   - iw (deteção de modo AP)
+#   - iw (banda Wi-Fi, deteção de modo AP e watchdog)
 #   - cloud-init: parar de reescrever o netplan no boot
 #   - mask wait-online (arranque mais rápido)
 #

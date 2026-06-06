@@ -45,8 +45,8 @@ Se a tua placa é **Broadcom BCM43xx** (típico em cartões Fenvi /
 Hackintosh — chips BCM4360, BCM4352, BCM4364, BCM43224, ...), corre antes:
 
 ```bash
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 sudo ./broadcom-wl-setup.sh
 ```
 
@@ -65,20 +65,19 @@ Com o cabo temporário ligado, na máquina (se ainda não clonaste o repo,
 clona agora):
 
 ```bash
-git clone --branch v1.0.0 https://github.com/soundflow-dev/netshare.git
-cd netshare
+git clone https://github.com/soundflow-dev/NetShare2.git
+cd NetShare2
 sudo ./bootstrap.sh
 sudo reboot
 ```
 
-> Vê as releases disponíveis em
-> https://github.com/soundflow-dev/netshare/releases — substitui
-> `v1.0.0` pela versão que quiseres. Se ainda não tiveres rede nenhuma,
-> copia a pasta por pen USB ou `scp -r netshare/ <user>@<IP-do-box>:~/`
-> a partir de outro computador.
+> Quando houver releases, podes usar uma tag estável de
+> https://github.com/soundflow-dev/NetShare2/releases. Se ainda não tiveres
+> rede nenhuma, copia a pasta por pen USB ou
+> `scp -r NetShare2/ <user>@<IP-do-box>:~/` a partir de outro computador.
 
 O `bootstrap.sh` instala o NetworkManager (necessário para scan Wi-Fi + modo
-*shared*), o `iw` (deteção de modo AP), desactiva a configuração de rede do
+*shared*), o `iw` (banda Wi-Fi/modo AP/watchdog), desactiva a configuração de rede do
 cloud-init e o `wait-online`.
 
 **Depois do reboot**, confirma que a Wi-Fi aparece:
@@ -95,7 +94,7 @@ está bom. Se **não** aparecer numa máquina com placa Broadcom BCM43xx, volta
 ## Fase 3 — Instalar o painel NetShare
 
 ```bash
-cd ~/netshare
+cd ~/NetShare2
 sudo ./install.sh
 sudo systemctl restart netshare
 ```
@@ -114,14 +113,13 @@ No painel, em cada placa escolhe o papel:
 
 | Interface | Papel | Notas |
 |-----------|-------|-------|
-| Wi-Fi (ex. `wlp1s0`) | **Recebe internet** | liga à rede que fornece a internet (escolhes o SSID e metes a password no painel) |
-| Cabo p/ router upstream (ex. `enp2s0`) | **Partilha internet** | NAT + DHCP automáticos (`10.42.0.1/24`) |
+| Wi-Fi (ex. `wlp1s0`) | **Recebe internet** ou **Partilha internet** | WAN cliente se ligares a um SSID; hotspot só se suportar modo AP |
+| Cabo p/ router/dispositivos (ex. `enp2s0`) | **Recebe internet** ou **Partilha internet** | WAN por DHCP ou NAT + DHCP automáticos (`10.42.0.1/24`) |
 | Cabo de gestão (ex. `enp3s0`) | **Rede normal** | DHCP normal mas `never-default` |
 
-> A opção **"Partilha" por Wi-Fi** aparece desactivada em placas cujo chip não
-> suporta modo AP — por exemplo, as Broadcom BCM43xx com driver `wl` só
-> conseguem ser cliente. Para partilhar tem de ser por cabo. (A deteção é
-> automática via `iw`.)
+> Broadcom BCM43xx com driver proprietário `wl` é caso especial importante:
+> normalmente funciona como cliente WAN, mas não expõe modo AP. O painel deve
+> bloquear “Partilha internet” nessa placa; usa Ethernet para partilhar.
 
 ## Fase 5 — Cablagem final
 
