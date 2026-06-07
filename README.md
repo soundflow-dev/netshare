@@ -66,7 +66,7 @@ If you are reinstalling from scratch on a machine with a Broadcom BCM43xx/Fenvi
 card that needs the proprietary `wl` driver, use this order:
 
 ```bash
-git clone --branch v1.0.4 https://github.com/soundflow-dev/NetShare2.git
+git clone https://github.com/soundflow-dev/NetShare2.git
 cd NetShare2
 
 sudo ./broadcom-wl-setup.sh
@@ -96,6 +96,10 @@ sudo cp netshare-wan-watchdog.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now netshare-wan-watchdog.timer
 ```
+
+If you want to pin the install to a specific release instead of `main`, use
+`git clone --branch <tag> https://github.com/soundflow-dev/NetShare2.git`
+(for example, `v1.0.4`).
 
 ### Special case: Broadcom BCM43xx Wi-Fi card
 

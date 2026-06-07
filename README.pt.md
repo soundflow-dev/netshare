@@ -65,7 +65,7 @@ Se vais reinstalar do zero numa máquina com placa Broadcom BCM43xx/Fenvi que
 precisa do driver proprietário `wl`, usa esta ordem:
 
 ```bash
-git clone --branch v1.0.4 https://github.com/soundflow-dev/NetShare2.git
+git clone https://github.com/soundflow-dev/NetShare2.git
 cd NetShare2
 
 sudo ./broadcom-wl-setup.sh
@@ -94,6 +94,10 @@ sudo cp netshare-wan-watchdog.timer /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now netshare-wan-watchdog.timer
 ```
+
+Se quiseres prender a instalação a uma release específica em vez do `main`,
+usa `git clone --branch <tag> https://github.com/soundflow-dev/NetShare2.git`
+(ex.: `v1.0.4`).
 
 ### Caso especial: placa Wi-Fi Broadcom BCM43xx
 
