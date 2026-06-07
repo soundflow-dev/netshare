@@ -40,9 +40,9 @@ For most machines (Wi-Fi cards from Intel, Realtek, MediaTek, Atheros, or
 Broadcom supported by the open `brcmfmac` driver). Over SSH:
 
 ```bash
-# 1) Clone NetShare2
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+# 1) Clone NetShare
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 
 # 2) Universal system preparation (NetworkManager, iw, ...)
 sudo ./bootstrap.sh && sudo reboot
@@ -52,7 +52,7 @@ After the reboot, reconnect over SSH and:
 
 ```bash
 # 3) Install the panel and the management route mechanism
-cd NetShare2
+cd NetShare
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 
@@ -66,8 +66,8 @@ If you are reinstalling from scratch on a machine with a Broadcom BCM43xx/Fenvi
 card that needs the proprietary `wl` driver, use this order:
 
 ```bash
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 
 sudo ./broadcom-wl-setup.sh
 sudo ./bootstrap.sh
@@ -77,7 +77,7 @@ sudo reboot
 After the reboot:
 
 ```bash
-cd ~/NetShare2
+cd ~/NetShare
 sudo ./install.sh
 sudo systemctl restart netshare
 ```
@@ -89,7 +89,7 @@ router/WAN2 as **Shares internet**, and set the management Ethernet as
 5 GHz watchdog:
 
 ```bash
-cd ~/NetShare2
+cd ~/NetShare
 sudo install -m755 wan-watchdog.sh /opt/netshare/wan-watchdog.sh
 sudo cp netshare-wan-watchdog.service /etc/systemd/system/
 sudo cp netshare-wan-watchdog.timer /etc/systemd/system/
@@ -98,7 +98,7 @@ sudo systemctl enable --now netshare-wan-watchdog.timer
 ```
 
 If you want to pin the install to a specific release instead of `main`, use
-`git clone --branch <tag> https://github.com/soundflow-dev/NetShare2.git`
+`git clone --branch <tag> https://github.com/soundflow-dev/NetShare.git`
 (for example, `v1.0.4`).
 
 ### Special case: Broadcom BCM43xx Wi-Fi card
@@ -120,8 +120,8 @@ this step.
 **How to install (run BEFORE `bootstrap.sh`):**
 
 ```bash
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 
 # 0) BEFORE bootstrap — install the proprietary Broadcom driver
 sudo ./broadcom-wl-setup.sh
@@ -129,7 +129,7 @@ sudo ./broadcom-wl-setup.sh
 # 1+2+3) Rest is the same as the standard install
 sudo ./bootstrap.sh && sudo reboot
 # after the reboot:
-cd NetShare2
+cd NetShare
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 

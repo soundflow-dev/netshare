@@ -46,8 +46,8 @@ If your card is **Broadcom BCM43xx** (typical in Fenvi / Hackintosh cards —
 chips BCM4360, BCM4352, BCM4364, BCM43224, ...), run this first:
 
 ```bash
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 sudo ./broadcom-wl-setup.sh
 ```
 
@@ -66,16 +66,16 @@ With the temporary cable connected, on the machine (clone the repo now if
 you haven't already):
 
 ```bash
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 sudo ./bootstrap.sh
 sudo reboot
 ```
 
 > When releases exist, you can use a stable tag from
-> https://github.com/soundflow-dev/NetShare2/releases. If you have no
+> https://github.com/soundflow-dev/NetShare/releases. If you have no
 > network at all yet, copy the folder via USB stick or
-> `scp -r NetShare2/ <user>@<box-IP>:~/` from another computer.
+> `scp -r NetShare/ <user>@<box-IP>:~/` from another computer.
 
 `bootstrap.sh` installs NetworkManager (needed for Wi-Fi scan + *shared*
 mode), `iw` (Wi-Fi band/AP mode/watchdog), disables cloud-init's network config and
@@ -95,7 +95,7 @@ cards, see the *Troubleshooting* section at the end.
 ## Phase 3 — Install the NetShare panel
 
 ```bash
-cd ~/NetShare2
+cd ~/NetShare
 sudo ./install.sh
 sudo systemctl restart netshare
 ```

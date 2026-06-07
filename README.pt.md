@@ -40,9 +40,9 @@ Para a maioria das máquinas (placas Wi-Fi Intel, Realtek, MediaTek, Atheros, ou
 Broadcom suportadas pelo driver aberto `brcmfmac`). Por SSH:
 
 ```bash
-# 1) Clona o NetShare2
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+# 1) Clona o NetShare
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 
 # 2) Preparação universal do sistema (NetworkManager, iw, ...)
 sudo ./bootstrap.sh && sudo reboot
@@ -52,7 +52,7 @@ Após o reboot, reconecta-te por SSH e:
 
 ```bash
 # 3) Instala o painel e o mecanismo de rota de gestão
-cd NetShare2
+cd NetShare
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 
@@ -65,8 +65,8 @@ Se vais reinstalar do zero numa máquina com placa Broadcom BCM43xx/Fenvi que
 precisa do driver proprietário `wl`, usa esta ordem:
 
 ```bash
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 
 sudo ./broadcom-wl-setup.sh
 sudo ./bootstrap.sh
@@ -76,7 +76,7 @@ sudo reboot
 Após o reboot:
 
 ```bash
-cd ~/NetShare2
+cd ~/NetShare
 sudo ./install.sh
 sudo systemctl restart netshare
 ```
@@ -87,7 +87,7 @@ No painel, define a Wi-Fi Broadcom como **Recebe internet**, escolhe a linha
 dual-band com o mesmo SSID, instala também o watchdog 5 GHz:
 
 ```bash
-cd ~/NetShare2
+cd ~/NetShare
 sudo install -m755 wan-watchdog.sh /opt/netshare/wan-watchdog.sh
 sudo cp netshare-wan-watchdog.service /etc/systemd/system/
 sudo cp netshare-wan-watchdog.timer /etc/systemd/system/
@@ -96,7 +96,7 @@ sudo systemctl enable --now netshare-wan-watchdog.timer
 ```
 
 Se quiseres prender a instalação a uma release específica em vez do `main`,
-usa `git clone --branch <tag> https://github.com/soundflow-dev/NetShare2.git`
+usa `git clone --branch <tag> https://github.com/soundflow-dev/NetShare.git`
 (ex.: `v1.0.4`).
 
 ### Caso especial: placa Wi-Fi Broadcom BCM43xx
@@ -117,8 +117,8 @@ aparece no `nmcli device status` após o `bootstrap.sh`, precisas deste passo.
 **Como instalar (executar ANTES do `bootstrap.sh`):**
 
 ```bash
-git clone https://github.com/soundflow-dev/NetShare2.git
-cd NetShare2
+git clone https://github.com/soundflow-dev/NetShare.git
+cd NetShare
 
 # 0) ANTES do bootstrap — instala o driver Broadcom proprietário
 sudo ./broadcom-wl-setup.sh
@@ -126,7 +126,7 @@ sudo ./broadcom-wl-setup.sh
 # 1+2+3) Resto igual à instalação padrão
 sudo ./bootstrap.sh && sudo reboot
 # após o reboot:
-cd NetShare2
+cd NetShare
 sudo ./install.sh && sudo systemctl restart netshare
 ```
 
